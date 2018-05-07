@@ -63,7 +63,8 @@ router.get('/:id', (req, res, next) => {
 
 /* ========== POST/CREATE AN ITEM ========== */
 router.post('/', (req, res, next) => {
-  const { title, content, folderId, tags = [] } = req.body;
+  const { title, content, tags = [] } = req.body;
+  const folderId = req.body.folderId || undefined;
 
   /***** Never trust users - validate input *****/
   if (!title) {
