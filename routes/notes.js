@@ -1,11 +1,11 @@
 'use strict';
 
 const express = require('express');
-const router = express.Router();
-
 const mongoose = require('mongoose');
 
 const Note = require('../models/note');
+
+const router = express.Router();
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
@@ -63,8 +63,8 @@ router.get('/:id', (req, res, next) => {
 
 /* ========== POST/CREATE AN ITEM ========== */
 router.post('/', (req, res, next) => {
-  const { title, content, tags = [] } = req.body;
-  const folderId = req.body.folderId || undefined;
+  const { title, content, folderId, tags } = req.body;
+  const newNote = { title, content, tags };
 
   /***** Never trust users - validate input *****/
   if (!title) {
@@ -89,12 +89,13 @@ router.post('/', (req, res, next) => {
     });
   }
 
-  Note.create({ title, content, folderId, tags })
+  if (mongoose.Types.ObjectId.isValid(folderId)) {
+    newNote.folderId = folderId;
+  }
+
+  Note.create(newNote)
     .then(result => {
-      res
-        .location(`${req.originalUrl}/${result.id}`)
-        .status(201)
-        .json(result);
+      res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
     })
     .catch(err => {
       next(err);
@@ -104,7 +105,8 @@ router.post('/', (req, res, next) => {
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
   const { id } = req.params;
-  const { title, content, folderId, tags = [] } = req.body;
+  const { title, content, folderId, tags } = req.body;
+  const updateNote = { title, content, tags };
 
   /***** Never trust users - validate input *****/
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -135,7 +137,12 @@ router.put('/:id', (req, res, next) => {
     });
   }
 
-  Note.findByIdAndUpdate(id, { title, content, folderId, tags }, { new: true })
+  if (mongoose.Types.ObjectId.isValid(folderId)) {
+    updateNote.folderId = folderId;
+  }
+
+  Note.findByIdAndUpdate(id, updateNote, { new: true })
+    .populate('tags')
     .then(result => {
       if (result) {
         res.json(result);
