@@ -1,12 +1,12 @@
 'use strict';
 
 const express = require('express');
-const router = express.Router();
-
 const mongoose = require('mongoose');
 
 const Tag = require('../models/tag');
 const Note = require('../models/note');
+
+const router = express.Router();
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
@@ -109,12 +109,12 @@ router.put('/:id', (req, res, next) => {
 /* ========== DELETE/REMOVE A SINGLE ITEM ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
+
   const tagRemovePromise = Tag.findByIdAndRemove(id);
-  // const tagRemovePromise = Tag.remove({ _id: id }); // NOTE **underscore** _id
 
   const noteUpdatePromise = Note.updateMany(
-    { 'tags': id, },
-    { '$pull': { 'tags': id } }
+    { tags: id, },
+    { $pull: { tags: id } }
   );
 
   Promise.all([tagRemovePromise, noteUpdatePromise])
