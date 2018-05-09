@@ -6,15 +6,8 @@ const mongoose = require('mongoose');
 // ===== Define UserSchema & UserModel =====
 const userSchema = new mongoose.Schema({
   fullname: { type: String, default: '' },
-  username: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  password: {
-    type: String,
-    required: true
-  }
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
 });
 
 userSchema.set('toObject', {
