@@ -8,26 +8,40 @@ const Note = require('../models/note');
 const Folder = require('../models/folder');
 const Tag = require('../models/tag');
 
-function validateFolderId(userId, folderId) {
-  if (!folderId) {
+function validateFolderId(folderId, userId) {
+  if (folderId === undefined) {
     return Promise.resolve();
   }
-  return Folder.findOne({ _id: folderId, userId })
-    .then(result => {
-      if (!result) {
-        return Promise.reject('InvalidFolder');
+  if (!mongoose.Types.ObjectId.isValid(folderId)) {
+    const err = new Error('The `folderId` is not valid');
+    err.status = 400;
+    return Promise.reject(err);
+  }
+  return Folder.count({ _id: folderId, userId })
+    .then(count => {
+      if (count === 0) {
+        const err = new Error('The `folderId` is not valid');
+        err.status = 400;
+        return Promise.reject(err);
       }
     });
 }
 
-function validateTagIds(userId, tags = []) {
-  if (!tags.length) {
+function validateTagIds(tags, userId) {
+  if (tags === undefined) {
     return Promise.resolve();
+  }
+  if (!Array.isArray(tags)) {
+    const err = new Error('The `tags` must be an array');
+    err.status = 400;
+    return Promise.reject(err);
   }
   return Tag.find({ $and: [{ _id: { $in: tags }, userId }] })
     .then(results => {
       if (tags.length !== results.length) {
-        return Promise.reject('InvalidTag');
+        const err = new Error('The `tags` contains an invalid id');
+        err.status = 400;
+        return Promise.reject(err);
       }
     });
 }
@@ -97,7 +111,7 @@ router.get('/:id', (req, res, next) => {
 router.post('/', (req, res, next) => {
   const { title, content, folderId, tags } = req.body;
   const userId = req.user.id;
-  const newNote = { title, content, userId };
+  const newNote = { title, content, userId, folderId, tags };
 
   /***** Never trust users - validate input *****/
   if (!title) {
@@ -106,11 +120,10 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
-
-  const valFolderIdProm = validateFolderId(userId, newNote.folderId);
-  const valTagIdsProm = validateTagIds(userId, newNote.tags);
-
-  Promise.all([valFolderIdProm, valTagIdsProm])
+  Promise.all([
+    validateFolderId(folderId, userId),
+    validateTagIds(tags, userId)
+  ])
     .then(() => Note.create(newNote))
     .then(result => {
       res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
@@ -133,7 +146,7 @@ router.put('/:id', (req, res, next) => {
   const { id } = req.params;
   const { title, content, folderId, tags } = req.body;
   const userId = req.user.id;
-  const updateNote = { title, content, tags, userId };
+  const updateNote = { title, content, userId, folderId, tags };
 
   /***** Never trust users - validate input *****/
   if (!title) {
@@ -142,18 +155,17 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
-
   if (mongoose.Types.ObjectId.isValid(folderId)) {
     updateNote.folderId = folderId;
   }
 
-  const valFolderIdProm = validateFolderId(userId, folderId);
-  const valTagIdsProm = validateTagIds(userId, tags);
-
-  Promise.all([valFolderIdProm, valTagIdsProm])
+  Promise.all([
+    validateFolderId(folderId, userId),
+    validateTagIds(tags, userId)
+  ])
     .then(() => {
       return Note.findByIdAndUpdate(id, updateNote, { new: true })
-      .populate('tags');
+        .populate('tags');
     })
     .then(result => {
       if (result) {
