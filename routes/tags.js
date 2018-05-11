@@ -31,6 +31,7 @@ router.get('/:id', (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
+  /***** Never trust users - validate input *****/
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The `id` is not valid');
     err.status = 400;
@@ -84,14 +85,14 @@ router.put('/:id', (req, res, next) => {
   const userId = req.user.id;
 
   /***** Never trust users - validate input *****/
-  if (!name) {
-    const err = new Error('Missing `name` in request body');
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
     err.status = 400;
     return next(err);
   }
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    const err = new Error('The `id` is not valid');
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
     err.status = 400;
     return next(err);
   }
@@ -120,13 +121,21 @@ router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  Tag.findOneAndRemove({ _id: id, userId })
-    .then(() => {
-      return Note.updateMany(
-        { tags: id, userId },
-        { $pull: { tags: id } }
-      );
-    })
+  /***** Never trust users - validate input *****/
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
+  const tagRemovePromise = Tag.findOneAndRemove({ _id: id, userId });
+
+  const noteUpdatePromise = Note.updateMany(
+    { tags: id, userId },
+    { $pull: { tags: id } }
+  );
+
+  Promise.all([tagRemovePromise, noteUpdatePromise])
     .then(() => {
       res.status(204).end();
     })

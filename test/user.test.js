@@ -13,7 +13,7 @@ const expect = chai.expect;
 
 chai.use(chaiHttp);
 
-describe.only('Noteful API - Users', function () {
+describe('Noteful API - Users', function () {
   const username = 'exampleUser';
   const password = 'examplePass';
   const fullname = 'Example User';
@@ -47,7 +47,7 @@ describe.only('Noteful API - Users', function () {
             res = _res;
             expect(res).to.have.status(201);
             expect(res.body).to.be.an('object');
-            expect(res.body).to.have.keys('id', 'username', 'fullname');
+            expect(res.body).to.have.keys('id', 'username', 'fullname', 'createdAt', 'updatedAt');
             expect(res.body.id).to.exist;
             expect(res.body.username).to.equal(username);
             expect(res.body.fullname).to.equal(fullname);
@@ -191,7 +191,7 @@ describe.only('Noteful API - Users', function () {
           .then(res => {
             expect(res).to.have.status(201);
             expect(res.body).to.be.an('object');
-            expect(res.body).to.include.keys('fullname');
+            expect(res.body).to.have.keys('id', 'username', 'fullname', 'createdAt', 'updatedAt');
             expect(res.body.fullname).to.equal(fullname);
             return User.findOne({ username });
           })

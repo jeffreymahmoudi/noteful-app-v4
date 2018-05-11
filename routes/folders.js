@@ -84,14 +84,14 @@ router.put('/:id', (req, res, next) => {
   const userId = req.user.id;
 
   /***** Never trust users - validate input *****/
-  if (!name) {
-    const err = new Error('Missing `name` in request body');
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
     err.status = 400;
     return next(err);
   }
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    const err = new Error('The `id` is not valid');
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
     err.status = 400;
     return next(err);
   }
@@ -120,13 +120,21 @@ router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  Folder.findOneAndRemove({ _id: id, userId })
-    .then(() => {
-      return Note.updateMany(
-        { folderId: id, userId },
-        { $unset: { folderId: '' } }
-      );
-    })
+  /***** Never trust users - validate input *****/
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
+  const folderRemovePromise = Folder.findOneAndRemove({ _id: id, userId });
+
+  const noteRemovePromise = Note.updateMany(
+    { folderId: id, userId },
+    { $unset: { folderId: '' } }
+  );
+
+  Promise.all([folderRemovePromise, noteRemovePromise])
     .then(() => {
       res.status(204).end();
     })

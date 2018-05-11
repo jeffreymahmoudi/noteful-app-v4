@@ -8,7 +8,7 @@ const noteSchema = new mongoose.Schema({
   folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder' },
   tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
-}, { timestamps: true});
+}, { timestamps: true });
 
 
 noteSchema.set('toObject', {
